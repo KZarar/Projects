@@ -50,7 +50,7 @@ Welcome to the **Voice Assistant** PowerApps Component Framework (PCF) control! 
 - `VoiceApp/css/VoiceApp.css` - Styles
 - `VoiceApp/generated/ManifestTypes.d.ts` - Auto-generated types
 - `VoiceApp/ControlManifest.Input.xml` - PCF manifest
-- 'realtimeFunction/HttpTrigger1/index.js' - Azure function
+- `realtimeFunction/HttpTrigger1/index.js` - Azure function
 
 ---
 
