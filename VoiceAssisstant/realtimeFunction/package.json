@@ -1,0 +1,8 @@
+{
+  "name": "openai-text-function",
+  "version": "1.0.0",
+  "description": "Azure Function to process text with OpenAI.",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}

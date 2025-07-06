@@ -1,0 +1,16 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "WEBSITE_SLOT_NAME": "Production",
+    "FUNCTIONS_EXTENSION_VERSION": "~4",
+    "ScmType": "None",
+    "AzureWebJobsSecretStorageType": "files",
+    "WEBSITE_AUTH_ENABLED": "False",
+    "Open_AI_API": "",
+    "APPLICATIONINSIGHTS_CONNECTION_STRING": "InstrumentationKey=cf2b6b77-3b2d-444f-b915-66b786a85771;IngestionEndpoint=https://canadacentral-1.in.applicationinsights.azure.com/;LiveEndpoint=https://canadacentral.livediagnostics.monitor.azure.com/;ApplicationId=320142ce-7579-4a03-adde-712acc932229",
+    "WEBSITE_NODE_DEFAULT_VERSION": "20.18.3",
+    "WEBSITE_DEFAULT_HOSTNAME": "realtimefunction-d8d2h0drd6chaeez.canadacentral-01.azurewebsites.net",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "WEBSITE_SITE_NAME": "realtimeFunction"
+  }
+}

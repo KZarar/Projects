@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest>
+  <control namespace="kashif" constructor="VoiceApp" version="0.0.3" display-name-key="VoiceApp" description-key="VoiceApp" control-type="standard">
+    
+    <property name="functionAppUrl" display-name-key="Azure Function URL" description-key="The URL of the Azure Function to call" of-type="SingleLine.Text" usage="input" required="true" />
+
+    <property name="dummyProperty" display-name-key="Dummy Property" description-key="A dummy property." of-type="SingleLine.Text" usage="bound" required="true" />
+    
+    <resources>
+      <code path="index.ts" order="1"/>
+      <css path="css/VoiceApp.css" order="1" />
+    </resources>
+    <feature-usage>
+        <uses-feature name="React" required="true" />
+    </feature-usage>
+  </control>
+</manifest>
