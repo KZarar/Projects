@@ -1,7 +1,6 @@
 import * as React from 'react';
-import './css/VoiceApp.css';
-import { useSpeechRecognition } from './useSpeechRecognition'; // Import the hook
-
+import { useState, useEffect } from 'react';
+import { useSpeechRecognition } from './useSpeechRecognition';
 
 interface VoiceAppProps {
   functionAppUrl: string;
@@ -12,112 +11,113 @@ interface Message {
   content: string;
 }
 
-// Define a specific interface for the window object that includes the non-standard property.
-// This is the correct, type-safe approach.
 interface IWindowWithAudioContext extends Window {
   AudioContext: typeof AudioContext;
   webkitAudioContext: typeof AudioContext;
 }
-
-// Create a typed reference to the window object using our new interface.
 const typedWindow = window as unknown as IWindowWithAudioContext;
 const audioContext = new (typedWindow.AudioContext || typedWindow.webkitAudioContext)();
 
+const CONVERSATION_WINDOW_SIZE = 6;
 
 export const VoiceAppComponent: React.FC<VoiceAppProps> = ({ functionAppUrl }) => {
-  const [status, setStatus] = React.useState<'idle' | 'listening' | 'processing' | 'playing' | 'error'>('idle');
-  const [messages, setMessages] = React.useState<Message[]>([]);
-  const [audioSource, setAudioSource] = React.useState<AudioBufferSourceNode | null>(null);
+  const [statusText, setStatusText] = useState('Hold the mic to speak.');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [audioSource, setAudioSource] = useState<AudioBufferSourceNode | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const { isListening, transcript, startListening, stopListening, isSpeechRecognitionSupported } = useSpeechRecognition();
+  const { isListening, transcript, startListening, stopListening } = useSpeechRecognition();
 
-  React.useEffect(() => {
-    if (!isListening && transcript) {
-      handleSendQueryToAzure(transcript);
+  useEffect(() => {
+    if (transcript) {
+      handleSendQuery(transcript);
     }
-  }, [isListening, transcript]);
+  }, [transcript]);
 
-  const handleListenStart = () => {
+  const handleMicDown = () => {
     if (audioSource) {
       audioSource.stop();
     }
-    if (!isSpeechRecognitionSupported || isListening) return;
-    setStatus('listening');
     startListening();
   };
 
-  const handleListenStop = () => {
-    if (isListening) stopListening();
-  };
-
-  const handleSendQueryToAzure = async (query: string) => {
-    if (!query.trim() || !functionAppUrl) {
-      if (!functionAppUrl) console.error("Azure Function URL is not configured in the component properties.");
+  const handleSendQuery = async (query: string) => {
+    if (!functionAppUrl) {
+      console.error("Azure Function URL is not configured in the component properties.");
+      setStatusText('Error: Function URL not set.');
       return;
     }
-
-    setStatus('processing');
+    
+    setIsProcessing(true);
+    setStatusText('Thinking...');
+    
     const newMessages: Message[] = [...messages, { role: 'user', content: query }];
     setMessages(newMessages);
+
+    const recentMessages = newMessages.slice(-CONVERSATION_WINDOW_SIZE);
 
     try {
       const response = await fetch(functionAppUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: recentMessages }),
       });
 
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      if (!response.body) throw new Error("Response has no body");
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      setStatusText('Speaking...');
+      
+      const responseData = await response.json();
+      const aiText = responseData.text;
+      
+      setMessages(prev => [...prev, {role: 'assistant', content: aiText}]);
+      
+      const audioBlob = atob(responseData.audio);
+      const audioArray = new Uint8Array(audioBlob.length);
+      for (let i = 0; i < audioBlob.length; i++) {
+          audioArray[i] = audioBlob.charCodeAt(i);
+      }
+      const audioBuffer = await audioContext.decodeAudioData(audioArray.buffer);
 
-      setStatus('playing');
-
-      const audioBuffer = await response.arrayBuffer();
-      const decodedAudio = await audioContext.decodeAudioData(audioBuffer);
       const source = audioContext.createBufferSource();
-      source.buffer = decodedAudio;
+      source.buffer = audioBuffer;
       source.connect(audioContext.destination);
       source.start(0);
 
-      setAudioSource(prevSource => {
-        if (prevSource) {
-          prevSource.stop();
-        }
-        return source;
-      });
+      setAudioSource(source);
 
       source.onended = () => {
-        setStatus('idle');
+        setStatusText('Hold the mic to speak.');
+        setIsProcessing(false);
       };
 
     } catch (error) {
-      console.error("Error during audio playback:", error);
-      setStatus('error');
-    }
-  };
-
-  const renderDisplayContent = () => {
-    switch (status) {
-      case 'listening': return <div className="indicator-text listening-active">Listening...</div>;
-      case 'processing': return <div className="thinking-indicator"></div>;
-      case 'playing': return <div className="indicator-text">Speaking...</div>;
-      case 'error': return <div className="response-text error-text">An error occurred.</div>;
-      case 'idle':
-      default: return <div className="response-text">Hold the mic to speak.</div>;
+      console.error("Failed to fetch from Azure Function:", error);
+      setStatusText('Error. Try again.');
+      setIsProcessing(false);
     }
   };
 
   return (
     <div className="voice-app-container">
-      <div className="display-area">{renderDisplayContent()}</div>
+      <div className="display-area">
+        <div className="response-text">
+          {isListening ? 'Listening...' : statusText}
+        </div>
+      </div>
       <div className="control-area">
         <button
-          onMouseDown={handleListenStart} onMouseUp={handleListenStop}
-          onTouchStart={handleListenStart} onTouchEnd={handleListenStop}
-          className={`mic-button ${isListening || status === 'playing' ? 'listening' : ''}`}
-          disabled={!isSpeechRecognitionSupported || status === 'processing'}
-          title="Hold to Talk"
-        >🎤</button>
+          className={`mic-button ${isListening ? 'listening' : ''}`}
+          disabled={isProcessing}
+          onMouseDown={handleMicDown}
+          onMouseUp={stopListening}
+          onTouchStart={handleMicDown}
+          onTouchEnd={stopListening}
+        >
+          🎤
+        </button>
       </div>
     </div>
   );

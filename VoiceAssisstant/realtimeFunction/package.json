@@ -1,8 +1,10 @@
 {
-  "name": "openai-text-function",
+  "name": "voice-assistant-function",
   "version": "1.0.0",
-  "description": "Azure Function to process text with OpenAI.",
+  "description": "Handles voice commands with OpenAI and Dataverse function calling.",
   "dependencies": {
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "@azure/identity": "^4.2.0",
+    "@azure/core-auth": "^1.6.0"
   }
 }
